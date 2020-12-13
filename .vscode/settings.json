@@ -1,0 +1,14 @@
+{
+    "editor.formatOnSave": true,
+    "cSpell.words": [
+        "addrs",
+        "clippy",
+        "cmodel",
+        "deserialization",
+        "dsid",
+        "filetime",
+        "musl",
+        "reqwest",
+        "retr"
+    ]
+}

@@ -1,0 +1,65 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'generate-import-state-sql'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=generate-import-state-sql",
+                    "--package=generate-import-state-sql"
+                ],
+                "filter": {
+                    "name": "generate-import-state-sql",
+                    "kind": "bin"
+                }
+            },
+            "program": "${cargo:program}",
+            "args": [
+                "--ftp-server",
+                "${config:generate-import-state-sql.FTP_SERVER}",
+                "--ftp-port",
+                "${config:generate-import-state-sql.FTP_PORT}",
+                "--ftp-user",
+                "${config:generate-import-state-sql.FTP_USER}",
+                "--ftp-password",
+                "${config:generate-import-state-sql.FTP_PASSWORD}",
+                "--ftp-src",
+                "/Livingstone-Directors/0_Core-Data",
+                "--ftp-dest",
+                "${workspaceFolder}/data",
+                "--ftp-skip",
+                "true",
+                "--solr",
+                "${config:generate-import-state-sql.SOLR_HOST}",
+                "--sql",
+                "${workspaceFolder}/data/generated.sql",
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'generate-import-state-sql'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=generate-import-state-sql",
+                    "--package=generate-import-state-sql"
+                ],
+                "filter": {
+                    "name": "generate-import-state-sql",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
