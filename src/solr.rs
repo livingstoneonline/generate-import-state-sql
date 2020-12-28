@@ -28,6 +28,13 @@ struct Object {
 
 impl Object {
     fn new(pid: String, content_model: String, private: bool, md5: String) -> Self {
+        // In Solr we use hidden_b on manuscripts, to represent if the pages are
+        // hidden, but we should never have a policy on islandora:manuscriptCModel.
+        let private = if content_model == "islandora:manuscriptCModel" {
+            false
+        } else {
+            private
+        };
         Self {
             pid,
             content_model,
@@ -95,6 +102,18 @@ struct Datastream {
 impl Datastream {
     fn new(pid: String, dsid: String, md5: String) -> Self {
         Self { pid, dsid, md5 }
+    }
+
+    // Some datastreams are derived and thus ignored.
+    fn ignore(&self) -> bool {
+        const IGNORED: &'static [&'static str] = &["DC", "RELS-EXT", "RELS-INT", "POLICY"];
+        if IGNORED.contains(&self.dsid.as_str()) {
+            true
+        } else if self.dsid.ends_with("JP2") {
+            true
+        } else {
+            false
+        }
     }
 }
 
@@ -206,7 +225,7 @@ where
                     }
                     // Otherwise must be a datastream checksum.
                     _ => {
-                        //fedora_datastream_latest_DC_MD5_ms
+                        // fedora_datastream_latest_DC_MD5_ms
                         if name.value.ends_with(b"MD5_ms") {
                             let dsid = std::str::from_utf8(&name.value)?
                                 .strip_prefix("fedora_datastream_latest_")
@@ -238,6 +257,7 @@ where
     let datastreams = datastreams
         .into_iter()
         .map(|(dsid, md5)| Datastream::new(pid.clone(), dsid, md5))
+        .filter(|datastream| !datastream.ignore()) // Some datastreams are derived and thus ignored.
         .collect::<Vec<_>>();
     Ok((Object::new(pid, content_model, private, md5), datastreams))
 }
@@ -274,5 +294,14 @@ pub async fn generate_sql(server: &str) -> Result<String> {
     let response = response.text().await?;
     let reader = Reader::from_str(response.as_str());
     let (objects, datastreams) = parse_response(reader)?;
-    Ok(Object::sql(objects) + Datastream::sql(datastreams).as_str())
+    // Update Object MD5.
+    let update = r#"
+SET group_concat_max_len = 4096;
+UPDATE livingstone_fedora_local_objects o SET MD5 = (
+    SELECT MD5(GROUP_CONCAT(MD5 SEPARATOR ''))
+    FROM livingstone_fedora_local_datastreams d
+    WHERE d.PID = o.PID ORDER BY DSID
+);
+"#;
+    Ok(Object::sql(objects) + Datastream::sql(datastreams).as_str() + update)
 }
